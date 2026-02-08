@@ -64,7 +64,11 @@ useEffect(() => {
             
             const converted = sheetsBookings.map(b => {
     // Parse the week string like "Jun 8" and add 2026
-    const weeksArray = b.weeks ? [new Date(b.weeks + ', 2026')] : [];
+    const weeksArray = b.weeks ? (() => {
+    const date = new Date(b.weeks + ', 2026');
+    date.setHours(12, 0, 0, 0); // Set to noon to match calendar
+    return [date];
+})() : [];
                 
                 return {
                     id: Date.now() + Math.random(),
