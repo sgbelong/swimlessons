@@ -29,7 +29,7 @@
             VENMO_USERNAME: '@YourVenmoUsername', // Update this!
             ADMIN_PASSWORD: 'swimadmin2026', // Change this!
             GOOGLE_CALENDAR_ID: 'your-calendar-id@group.calendar.google.com', // Update this!
-            NOTIFICATION_EMAIL: 'your-email@example.com' // Where booking notifications should go
+            NOTIFICATION_EMAIL: 'reddingswimlessons@gmail.com' // Where booking notifications should go
         };
 
         function SwimLessonBooking() {
@@ -165,12 +165,39 @@
                 }, 5000);
             };
 
-            const sendEmailNotification = (booking) => {
-                // In production, this would call your backend API to send emails
-                console.log('Booking submitted:', booking);
-                console.log('Email would be sent to:', booking.email);
-                console.log('Notification would be sent to:', CONFIG.NOTIFICATION_EMAIL);
-            };
+            const sendEmailNotification = async (booking) => {
+    console.log('Saving booking to Google Sheets...');
+    
+    // Format weeks for display
+    const weeksFormatted = booking.weeks.map(w => 
+        w.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    ).join(', ');
+    
+    // Send to Google Sheets
+    try {
+        await fetch('https://script.google.com/macros/s/AKfycby1S9eAQuATylnkAiJc4Hdx4CbtcCJyXAj4Bwp8TicOn0646zt3p3Wcg7aMxu1DFfZn/exec', {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                name: booking.name,
+                email: booking.email,
+                phone: booking.phone,
+                childName: booking.childName,
+                instructor: booking.instructor,
+                timeSlot: booking.timeSlot,
+                weeks: weeksFormatted,
+                totalCost: booking.totalCost,
+                venmoUsername: booking.venmoUsername
+            })
+        });
+        console.log('✅ Saved to Google Sheets!');
+    } catch (error) {
+        console.error('❌ Error saving to Sheets:', error);
+    }
+};
 
             const totalCost = selectedWeeks.length * COST_PER_WEEK;
 
@@ -178,7 +205,7 @@
                 <div style={{
                     fontFamily: '"Pacifico", "Comic Sans MS", cursive',
                     minHeight: '100vh',
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
+                    background: 'linear-gradient(135deg, #4285f4 0%, #3367d6 50%, #f093fb 100%)',
                     padding: '2rem'
                 }}>
                     <link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet" />
@@ -248,7 +275,7 @@
                                 style={{
                                     padding: '1rem 2rem',
                                     background: view === 'calendar' ? 'white' : 'rgba(255,255,255,0.2)',
-                                    color: view === 'calendar' ? '#667eea' : 'white',
+                                    color: view === 'calendar' ? '#4285f4' : 'white',
                                     border: 'none',
                                     borderRadius: '50px',
                                     fontSize: '1.1rem',
@@ -266,7 +293,7 @@
                                 style={{
                                     padding: '1rem 2rem',
                                     background: view === 'admin' ? 'white' : 'rgba(255,255,255,0.2)',
-                                    color: view === 'admin' ? '#667eea' : 'white',
+                                    color: view === 'admin' ? '#4285f4' : 'white',
                                     border: 'none',
                                     borderRadius: '50px',
                                     fontSize: '1.1rem',
@@ -297,7 +324,7 @@
                                         boxShadow: '0 10px 30px rgba(0,0,0,0.2)'
                                     }}>
                                         <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📅</div>
-                                        <h3 style={{ margin: '0 0 0.5rem 0', fontFamily: '"Poppins", sans-serif', color: '#667eea' }}>
+                                        <h3 style={{ margin: '0 0 0.5rem 0', fontFamily: '"Poppins", sans-serif', color: '#4285f4' }}>
                                             Season Dates
                                         </h3>
                                         <p style={{ margin: 0, fontFamily: '"Poppins", sans-serif', color: '#666' }}>
@@ -312,7 +339,7 @@
                                         boxShadow: '0 10px 30px rgba(0,0,0,0.2)'
                                     }}>
                                         <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>⏰</div>
-                                        <h3 style={{ margin: '0 0 0.5rem 0', fontFamily: '"Poppins", sans-serif', color: '#667eea' }}>
+                                        <h3 style={{ margin: '0 0 0.5rem 0', fontFamily: '"Poppins", sans-serif', color: '#4285f4' }}>
                                             Time Slots
                                         </h3>
                                         <p style={{ margin: 0, fontFamily: '"Poppins", sans-serif', color: '#666' }}>
@@ -327,7 +354,7 @@
                                         boxShadow: '0 10px 30px rgba(0,0,0,0.2)'
                                     }}>
                                         <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>💰</div>
-                                        <h3 style={{ margin: '0 0 0.5rem 0', fontFamily: '"Poppins", sans-serif', color: '#667eea' }}>
+                                        <h3 style={{ margin: '0 0 0.5rem 0', fontFamily: '"Poppins", sans-serif', color: '#4285f4' }}>
                                             Pricing
                                         </h3>
                                         <p style={{ margin: 0, fontFamily: '"Poppins", sans-serif', color: '#666' }}>
@@ -346,7 +373,7 @@
                                 }}>
                                     <h2 style={{
                                         fontFamily: '"Poppins", sans-serif',
-                                        color: '#667eea',
+                                        color: '#4285f4',
                                         marginBottom: '1.5rem',
                                         fontSize: '2rem'
                                     }}>
@@ -414,7 +441,7 @@
                                 }}>
                                     <h2 style={{
                                         fontFamily: '"Poppins", sans-serif',
-                                        color: '#667eea',
+                                        color: '#4285f4',
                                         marginBottom: '1rem',
                                         fontSize: '2rem'
                                     }}>
@@ -465,7 +492,7 @@
                                             fontFamily: '"Poppins", sans-serif',
                                             fontSize: '1.1rem',
                                             fontWeight: 'bold',
-                                            color: '#667eea',
+                                            color: '#4285f4',
                                             textAlign: 'center'
                                         }}>
                                             {selectedWeeks.length} week{selectedWeeks.length > 1 ? 's' : ''} × $80 = ${totalCost}
@@ -484,7 +511,7 @@
                                     }}>
                                         <h2 style={{
                                             fontFamily: '"Poppins", sans-serif',
-                                            color: '#667eea',
+                                            color: '#4285f4',
                                             marginBottom: '1.5rem',
                                             fontSize: '2rem'
                                         }}>
@@ -533,7 +560,7 @@
                                             onClick={() => setView('booking')}
                                             style={{
                                                 padding: '1.5rem 3rem',
-                                                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                                background: 'linear-gradient(135deg, #4285f4 0%, #3367d6 100%)',
                                                 color: 'white',
                                                 border: 'none',
                                                 borderRadius: '50px',
@@ -562,7 +589,7 @@
                             }}>
                                 <h2 style={{
                                     fontFamily: '"Poppins", sans-serif',
-                                    color: '#667eea',
+                                    color: '#4285f4',
                                     marginBottom: '2rem',
                                     fontSize: '2.5rem',
                                     textAlign: 'center'
@@ -577,11 +604,11 @@
                                     marginBottom: '2rem',
                                     fontFamily: '"Poppins", sans-serif'
                                 }}>
-                                    <h3 style={{ margin: '0 0 1rem 0', color: '#667eea' }}>Your Selection:</h3>
+                                    <h3 style={{ margin: '0 0 1rem 0', color: '#4285f4' }}>Your Selection:</h3>
                                     <p style={{ margin: '0.5rem 0' }}><strong>Instructor:</strong> {selectedInstructor}</p>
                                     <p style={{ margin: '0.5rem 0' }}><strong>Time:</strong> {selectedTimeSlot} (Mon-Thu)</p>
                                     <p style={{ margin: '0.5rem 0' }}><strong>Weeks:</strong> {selectedWeeks.length}</p>
-                                    <p style={{ margin: '0.5rem 0', fontSize: '1.3rem', fontWeight: 'bold', color: '#667eea' }}>
+                                    <p style={{ margin: '0.5rem 0', fontSize: '1.3rem', fontWeight: 'bold', color: '#4285f4' }}>
                                         <strong>Total:</strong> ${totalCost}
                                     </p>
                                 </div>
@@ -702,7 +729,7 @@
                                     borderRadius: '15px',
                                     marginBottom: '2rem'
                                 }}>
-                                    <h3 style={{ margin: '0 0 1rem 0', fontFamily: '"Poppins", sans-serif', color: '#667eea' }}>
+                                    <h3 style={{ margin: '0 0 1rem 0', fontFamily: '"Poppins", sans-serif', color: '#4285f4' }}>
                                         📋 Liability Waiver
                                     </h3>
                                     <div style={{
@@ -729,7 +756,7 @@
                                             width: '100%',
                                             padding: '0.875rem',
                                             borderRadius: '10px',
-                                            border: '2px solid #667eea',
+                                            border: '2px solid #4285f4',
                                             fontSize: '1rem',
                                             fontFamily: '"Poppins", sans-serif',
                                             fontStyle: 'italic'
@@ -760,7 +787,7 @@
                                         style={{
                                             flex: 2,
                                             padding: '1.25rem',
-                                            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                            background: 'linear-gradient(135deg, #4285f4 0%, #3367d6 100%)',
                                             color: 'white',
                                             border: 'none',
                                             borderRadius: '12px',
@@ -788,7 +815,7 @@
                                     <div style={{ maxWidth: '400px', margin: '0 auto' }}>
                                         <h2 style={{
                                             fontFamily: '"Poppins", sans-serif',
-                                            color: '#667eea',
+                                            color: '#4285f4',
                                             marginBottom: '1.5rem',
                                             textAlign: 'center'
                                         }}>
@@ -820,7 +847,7 @@
                                             style={{
                                                 width: '100%',
                                                 padding: '1rem',
-                                                background: '#667eea',
+                                                background: '#4285f4',
                                                 color: 'white',
                                                 border: 'none',
                                                 borderRadius: '10px',
@@ -836,7 +863,7 @@
                                 ) : (
                                     <div>
                                         <div style={{ marginBottom: '2rem' }}>
-                                            <h2 style={{ fontFamily: '"Poppins", sans-serif', color: '#667eea', marginBottom: '1.5rem' }}>
+                                            <h2 style={{ fontFamily: '"Poppins", sans-serif', color: '#4285f4', marginBottom: '1.5rem' }}>
                                                 Bookings Dashboard
                                             </h2>
                                             <div style={{
@@ -847,7 +874,8 @@
                                             }}>
                                                 <div style={{
                                                     padding: '1.5rem',
-                                                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                                    background: 'linear-gradient(135deg, #4285f4 0%, #3367d6 100%)',
+                                    
                                                     borderRadius: '15px',
                                                     color: 'white'
                                                 }}>
@@ -924,7 +952,7 @@
                                     <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🎉</div>
                                     <h2 style={{
                                         fontFamily: '"Poppins", sans-serif',
-                                        color: '#667eea',
+                                        color: '#4285f4',
                                         marginBottom: '1rem'
                                     }}>
                                         Registration Complete!
