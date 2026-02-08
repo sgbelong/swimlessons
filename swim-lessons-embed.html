@@ -131,13 +131,34 @@ useEffect(() => {
             const seasonWeeks = getSeasonWeeks();
 
             const isSlotAvailable = (week, timeSlot, instructor) => {
-                const bookingsForSlot = bookings.filter(b => 
-                    b.weeks.some(w => w.getTime() === week.date.getTime()) &&
-                    b.timeSlot === timeSlot &&
-                    b.instructor === instructor
-                );
-                return bookingsForSlot.length < 1;
-            };
+    console.log('Checking availability for:', {
+        week: week.date,
+        timeSlot,
+        instructor,
+        allBookings: bookings
+    });
+    
+    const bookingsForSlot = bookings.filter(b => {
+        console.log('Comparing booking:', {
+            bookingWeeks: b.weeks,
+            bookingTime: b.timeSlot,
+            bookingInstructor: b.instructor,
+            weekMatch: b.weeks.some(w => {
+                console.log('Comparing dates:', w, 'vs', week.date, '=', w.getTime() === week.date.getTime());
+                return w.getTime() === week.date.getTime();
+            }),
+            timeMatch: b.timeSlot === timeSlot,
+            instructorMatch: b.instructor === instructor
+        });
+        
+        return b.weeks.some(w => w.getTime() === week.date.getTime()) &&
+               b.timeSlot === timeSlot &&
+               b.instructor === instructor;
+    });
+    
+    console.log('Bookings for this slot:', bookingsForSlot);
+    return bookingsForSlot.length < 1;
+};
 
             const toggleWeek = (week) => {
                 const weekTime = week.date.getTime();
