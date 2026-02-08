@@ -50,20 +50,49 @@
             const [adminPassword, setAdminPassword] = useState('');
             const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
 
-            // Load bookings from localStorage
-            useEffect(() => {
-                const saved = localStorage.getItem('swimBookings');
-                if (saved) {
-                    const parsed = JSON.parse(saved);
-                    // Convert date strings back to Date objects
-                    const converted = parsed.map(b => ({
-                        ...b,
-                        weeks: b.weeks.map(w => new Date(w)),
-                        bookingDate: new Date(b.bookingDate)
-                    }));
-                    setBookings(converted);
-                }
-            }, []);
+            const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
+const [loadingBookings, setLoadingBookings] = useState(true);
+
+// Fetch existing bookings from Google Sheets on page load
+useEffect(() => {
+    const fetchExistingBookings = async () => {
+        try {
+            setLoadingBookings(true);
+            const response = await fetch('https://script.google.com/macros/s/AKfycby1S9eAQuATylnkAiJc4Hdx4CbtcCJyXAj4Bwp8TicOn0646zt3p3Wcg7aMxu1DFfZn/exec');
+            const sheetsBookings = await response.json();
+            
+            console.log('Loaded bookings from Google Sheets:', sheetsBookings);
+            
+            const converted = sheetsBookings.map(b => {
+                const weeksArray = b.weeks ? [new Date(b.weeks)] : [];
+                
+                return {
+                    id: Date.now() + Math.random(),
+                    name: b.name,
+                    email: b.email,
+                    phone: b.phone,
+                    childName: b.childName,
+                    instructor: b.instructor,
+                    timeSlot: b.timeSlot,
+                    weeks: weeksArray,
+                    totalCost: b.totalCost,
+                    venmoUsername: b.venmoUsername,
+                    bookingDate: new Date(b.bookingDate),
+                    paymentStatus: b.paymentStatus,
+                    signature: ''
+                };
+            });
+            
+            setBookings(converted);
+            setLoadingBookings(false);
+        } catch (error) {
+            console.error('Error fetching bookings:', error);
+            setLoadingBookings(false);
+        }
+    };
+    
+    fetchExistingBookings();
+}, []);
 
             // Save bookings to localStorage
             useEffect(() => {
