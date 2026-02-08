@@ -63,7 +63,8 @@ useEffect(() => {
             console.log('Loaded bookings from Google Sheets:', sheetsBookings);
             
             const converted = sheetsBookings.map(b => {
-                const weeksArray = b.weeks ? [new Date(b.weeks)] : [];
+    // Parse the week string like "Jun 8" and add 2026
+    const weeksArray = b.weeks ? [new Date(b.weeks + ', 2026')] : [];
                 
                 return {
                     id: Date.now() + Math.random(),
