@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Summer Swim Lessons 2026</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+        }
+        #root {
+            min-height: 100vh;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // CONFIGURATION - Update these values
+        const CONFIG = {
+            VENMO_USERNAME: '@YourVenmoUsername', // Update this!
+            ADMIN_PASSWORD: 'swimadmin2026', // Change this!
+            GOOGLE_CALENDAR_ID: 'your-calendar-id@group.calendar.google.com', // Update this!
+            NOTIFICATION_EMAIL: 'your-email@example.com' // Where booking notifications should go
+        };
+
+        function SwimLessonBooking() {
+            const [view, setView] = useState('calendar');
+            const [selectedWeeks, setSelectedWeeks] = useState([]);
+            const [selectedTimeSlot, setSelectedTimeSlot] = useState(null);
+            const [selectedInstructor, setSelectedInstructor] = useState(null);
+            const [bookings, setBookings] = useState([]);
+            const [formData, setFormData] = useState({
+                name: '',
+                email: '',
+                phone: '',
+                childName: '',
+                signature: '',
+                venmoUsername: ''
+            });
+            const [showConfirmation, setShowConfirmation] = useState(false);
+            const [adminPassword, setAdminPassword] = useState('');
+            const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
+
+            // Load bookings from localStorage
+            useEffect(() => {
+                const saved = localStorage.getItem('swimBookings');
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    // Convert date strings back to Date objects
+                    const converted = parsed.map(b => ({
+                        ...b,
+                        weeks: b.weeks.map(w => new Date(w)),
+                        bookingDate: new Date(b.bookingDate)
+                    }));
+                    setBookings(converted);
+                }
+            }, []);
+
+            // Save bookings to localStorage
+            useEffect(() => {
+                if (bookings.length > 0) {
+                    localStorage.setItem('swimBookings', JSON.stringify(bookings));
+                }
+            }, [bookings]);
+
+            const SEASON_START = new Date('2026-06-08');
+            const SEASON_END = new Date('2026-08-03');
+            const COST_PER_WEEK = 80;
+            const TIME_SLOTS = [
+                '9:00 AM', '9:30 AM', '10:00 AM', '10:30 AM',
+                '11:00 AM', '11:30 AM', '12:00 PM', '12:30 PM'
+            ];
+            const INSTRUCTORS = [
+                { name: 'Sienna', location: 'Shasta View', color: '#FF6B9D' },
+                { name: 'Hailey', location: 'Palo Cedro', color: '#4ECDC4' },
+                { name: 'Ari', location: 'Downtown', color: '#FFB347' }
+            ];
+
+            const getSeasonWeeks = () => {
+                const weeks = [];
+                let currentWeek = new Date(SEASON_START);
+                
+                while (currentWeek <= SEASON_END) {
+                    const monday = new Date(currentWeek);
+                    const weekLabel = `Week of ${monday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+                    weeks.push({ date: new Date(monday), label: weekLabel });
+                    currentWeek.setDate(currentWeek.getDate() + 7);
+                }
+                
+                return weeks;
+            };
+
+            const seasonWeeks = getSeasonWeeks();
+
+            const isSlotAvailable = (week, timeSlot, instructor) => {
+                const bookingsForSlot = bookings.filter(b => 
+                    b.weeks.some(w => w.getTime() === week.date.getTime()) &&
+                    b.timeSlot === timeSlot &&
+                    b.instructor === instructor
+                );
+                return bookingsForSlot.length < 1;
+            };
+
+            const toggleWeek = (week) => {
+                const weekTime = week.date.getTime();
+                if (selectedWeeks.some(w => w.getTime() === weekTime)) {
+                    setSelectedWeeks(selectedWeeks.filter(w => w.getTime() !== weekTime));
+                } else {
+                    setSelectedWeeks([...selectedWeeks, week.date]);
+                }
+            };
+
+            const handleBooking = async () => {
+                if (!formData.name || !formData.email || !formData.phone || !formData.signature) {
+                    alert('Please fill in all required fields');
+                    return;
+                }
+
+                if (!selectedWeeks.length || !selectedTimeSlot || !selectedInstructor) {
+                    alert('Please select weeks, time slot, and instructor');
+                    return;
+                }
+
+                const newBooking = {
+                    id: Date.now(),
+                    ...formData,
+                    weeks: selectedWeeks,
+                    timeSlot: selectedTimeSlot,
+                    instructor: selectedInstructor,
+                    totalCost: selectedWeeks.length * COST_PER_WEEK,
+                    bookingDate: new Date(),
+                    paymentStatus: 'pending'
+                };
+
+                setBookings([...bookings, newBooking]);
+                
+                // Send email notification (you'll need to implement backend for this)
+                sendEmailNotification(newBooking);
+                
+                setShowConfirmation(true);
+                
+                setTimeout(() => {
+                    setShowConfirmation(false);
+                    setView('calendar');
+                    setSelectedWeeks([]);
+                    setSelectedTimeSlot(null);
+                    setSelectedInstructor(null);
+                    setFormData({
+                        name: '',
+                        email: '',
+                        phone: '',
+                        childName: '',
+                        signature: '',
+                        venmoUsername: ''
+                    });
+                }, 5000);
+            };
+
+            const sendEmailNotification = (booking) => {
+                // In production, this would call your backend API to send emails
+                console.log('Booking submitted:', booking);
+                console.log('Email would be sent to:', booking.email);
+                console.log('Notification would be sent to:', CONFIG.NOTIFICATION_EMAIL);
+            };
+
+            const totalCost = selectedWeeks.length * COST_PER_WEEK;
+
+            return (
+                <div style={{
+                    fontFamily: '"Pacifico", "Comic Sans MS", cursive',
+                    minHeight: '100vh',
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
+                    padding: '2rem'
+                }}>
+                    <link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet" />
+                    
+                    <style>{`
+                        .wave-bg {
+                            position: fixed;
+                            bottom: 0;
+                            left: 0;
+                            width: 100%;
+                            height: 200px;
+                            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 320'%3E%3Cpath fill='%23ffffff' fill-opacity='0.3' d='M0,96L48,112C96,128,192,160,288,160C384,160,480,128,576,122.7C672,117,768,139,864,154.7C960,171,1056,181,1152,165.3C1248,149,1344,107,1392,85.3L1440,64L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z'%3E%3C/path%3E%3C/svg%3E") no-repeat bottom;
+                            background-size: cover;
+                            pointer-events: none;
+                        }
+                        .float {
+                            animation: float 3s ease-in-out infinite;
+                        }
+                        @keyframes float {
+                            0%, 100% { transform: translateY(0px); }
+                            50% { transform: translateY(-10px); }
+                        }
+                        .card {
+                            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                        }
+                        .card:hover {
+                            transform: translateY(-8px);
+                            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+                        }
+                    `}</style>
+                    
+                    <div className="wave-bg"></div>
+                    
+                    <div style={{ maxWidth: '1400px', margin: '0 auto', position: 'relative', zIndex: 1 }}>
+                        <div className="float" style={{
+                            textAlign: 'center',
+                            marginBottom: '3rem',
+                            color: 'white',
+                            textShadow: '0 2px 10px rgba(0,0,0,0.3)'
+                        }}>
+                            <h1 style={{
+                                fontSize: '4rem',
+                                margin: '0 0 0.5rem 0',
+                                fontFamily: '"Pacifico", cursive',
+                                letterSpacing: '2px'
+                            }}>
+                                🏊‍♀️ Summer Swim Lessons 2026
+                            </h1>
+                            <p style={{
+                                fontSize: '1.5rem',
+                                margin: 0,
+                                fontFamily: '"Poppins", sans-serif',
+                                fontWeight: 300
+                            }}>
+                                Make a splash with our expert instructors!
+                            </p>
+                        </div>
+
+                        <div style={{
+                            display: 'flex',
+                            gap: '1rem',
+                            marginBottom: '2rem',
+                            justifyContent: 'center'
+                        }}>
+                            <button
+                                onClick={() => setView('calendar')}
+                                style={{
+                                    padding: '1rem 2rem',
+                                    background: view === 'calendar' ? 'white' : 'rgba(255,255,255,0.2)',
+                                    color: view === 'calendar' ? '#667eea' : 'white',
+                                    border: 'none',
+                                    borderRadius: '50px',
+                                    fontSize: '1.1rem',
+                                    fontWeight: 'bold',
+                                    cursor: 'pointer',
+                                    fontFamily: '"Poppins", sans-serif',
+                                    boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
+                                    transition: 'all 0.3s'
+                                }}
+                            >
+                                📅 Book Lessons
+                            </button>
+                            <button
+                                onClick={() => setView('admin')}
+                                style={{
+                                    padding: '1rem 2rem',
+                                    background: view === 'admin' ? 'white' : 'rgba(255,255,255,0.2)',
+                                    color: view === 'admin' ? '#667eea' : 'white',
+                                    border: 'none',
+                                    borderRadius: '50px',
+                                    fontSize: '1.1rem',
+                                    fontWeight: 'bold',
+                                    cursor: 'pointer',
+                                    fontFamily: '"Poppins", sans-serif',
+                                    boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
+                                    transition: 'all 0.3s'
+                                }}
+                            >
+                                🔐 Admin
+                            </button>
+                        </div>
+
+                        {view === 'calendar' && (
+                            <div>
+                                {/* Info Cards */}
+                                <div style={{
+                                    display: 'grid',
+                                    gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                                    gap: '1.5rem',
+                                    marginBottom: '2rem'
+                                }}>
+                                    <div className="card" style={{
+                                        background: 'white',
+                                        padding: '1.5rem',
+                                        borderRadius: '20px',
+                                        boxShadow: '0 10px 30px rgba(0,0,0,0.2)'
+                                    }}>
+                                        <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📅</div>
+                                        <h3 style={{ margin: '0 0 0.5rem 0', fontFamily: '"Poppins", sans-serif', color: '#667eea' }}>
+                                            Season Dates
+                                        </h3>
+                                        <p style={{ margin: 0, fontFamily: '"Poppins", sans-serif', color: '#666' }}>
+                                            June 8 - August 3, 2026<br/>Monday - Thursday
+                                        </p>
+                                    </div>
+                                    
+                                    <div className="card" style={{
+                                        background: 'white',
+                                        padding: '1.5rem',
+                                        borderRadius: '20px',
+                                        boxShadow: '0 10px 30px rgba(0,0,0,0.2)'
+                                    }}>
+                                        <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>⏰</div>
+                                        <h3 style={{ margin: '0 0 0.5rem 0', fontFamily: '"Poppins", sans-serif', color: '#667eea' }}>
+                                            Time Slots
+                                        </h3>
+                                        <p style={{ margin: 0, fontFamily: '"Poppins", sans-serif', color: '#666' }}>
+                                            9:00 AM - 1:00 PM<br/>30-minute lessons
+                                        </p>
+                                    </div>
+                                    
+                                    <div className="card" style={{
+                                        background: 'white',
+                                        padding: '1.5rem',
+                                        borderRadius: '20px',
+                                        boxShadow: '0 10px 30px rgba(0,0,0,0.2)'
+                                    }}>
+                                        <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>💰</div>
+                                        <h3 style={{ margin: '0 0 0.5rem 0', fontFamily: '"Poppins", sans-serif', color: '#667eea' }}>
+                                            Pricing
+                                        </h3>
+                                        <p style={{ margin: 0, fontFamily: '"Poppins", sans-serif', color: '#666' }}>
+                                            $80 per week<br/>(4 lessons Mon-Thu)
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Instructors */}
+                                <div style={{
+                                    background: 'white',
+                                    padding: '2rem',
+                                    borderRadius: '20px',
+                                    marginBottom: '2rem',
+                                    boxShadow: '0 10px 30px rgba(0,0,0,0.2)'
+                                }}>
+                                    <h2 style={{
+                                        fontFamily: '"Poppins", sans-serif',
+                                        color: '#667eea',
+                                        marginBottom: '1.5rem',
+                                        fontSize: '2rem'
+                                    }}>
+                                        Choose Your Instructor
+                                    </h2>
+                                    <div style={{
+                                        display: 'grid',
+                                        gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+                                        gap: '1.5rem'
+                                    }}>
+                                        {INSTRUCTORS.map(instructor => (
+                                            <div
+                                                key={instructor.name}
+                                                onClick={() => setSelectedInstructor(instructor.name)}
+                                                style={{
+                                                    padding: '1.5rem',
+                                                    borderRadius: '15px',
+                                                    border: `3px solid ${selectedInstructor === instructor.name ? instructor.color : '#e0e0e0'}`,
+                                                    background: selectedInstructor === instructor.name ? `${instructor.color}15` : 'white',
+                                                    cursor: 'pointer',
+                                                    transition: 'all 0.3s',
+                                                    transform: selectedInstructor === instructor.name ? 'scale(1.05)' : 'scale(1)'
+                                                }}
+                                            >
+                                                <div style={{
+                                                    width: '60px',
+                                                    height: '60px',
+                                                    borderRadius: '50%',
+                                                    background: instructor.color,
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    fontSize: '2rem',
+                                                    marginBottom: '1rem'
+                                                }}>
+                                                    🏊‍♀️
+                                                </div>
+                                                <h3 style={{
+                                                    margin: '0 0 0.5rem 0',
+                                                    fontFamily: '"Poppins", sans-serif',
+                                                    fontSize: '1.5rem',
+                                                    color: instructor.color
+                                                }}>
+                                                    {instructor.name}
+                                                </h3>
+                                                <p style={{
+                                                    margin: 0,
+                                                    fontFamily: '"Poppins", sans-serif',
+                                                    color: '#666'
+                                                }}>
+                                                    📍 {instructor.location}
+                                                </p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Week Selection */}
+                                <div style={{
+                                    background: 'white',
+                                    padding: '2rem',
+                                    borderRadius: '20px',
+                                    marginBottom: '2rem',
+                                    boxShadow: '0 10px 30px rgba(0,0,0,0.2)'
+                                }}>
+                                    <h2 style={{
+                                        fontFamily: '"Poppins", sans-serif',
+                                        color: '#667eea',
+                                        marginBottom: '1rem',
+                                        fontSize: '2rem'
+                                    }}>
+                                        Select Your Weeks
+                                    </h2>
+                                    <p style={{
+                                        fontFamily: '"Poppins", sans-serif',
+                                        color: '#666',
+                                        marginBottom: '1.5rem'
+                                    }}>
+                                        Click to select which weeks you'd like to book
+                                    </p>
+                                    <div style={{
+                                        display: 'grid',
+                                        gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                                        gap: '1rem'
+                                    }}>
+                                        {seasonWeeks.map((week, idx) => {
+                                            const isSelected = selectedWeeks.some(w => w.getTime() === week.date.getTime());
+                                            return (
+                                                <div
+                                                    key={idx}
+                                                    onClick={() => toggleWeek(week)}
+                                                    style={{
+                                                        padding: '1rem',
+                                                        borderRadius: '12px',
+                                                        border: `2px solid ${isSelected ? '#4ECDC4' : '#e0e0e0'}`,
+                                                        background: isSelected ? '#4ECDC415' : 'white',
+                                                        cursor: 'pointer',
+                                                        transition: 'all 0.3s',
+                                                        fontFamily: '"Poppins", sans-serif',
+                                                        textAlign: 'center',
+                                                        fontWeight: isSelected ? 'bold' : 'normal'
+                                                    }}
+                                                >
+                                                    {isSelected && <span style={{ marginRight: '0.5rem' }}>✓</span>}
+                                                    {week.label}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                    {selectedWeeks.length > 0 && (
+                                        <div style={{
+                                            marginTop: '1.5rem',
+                                            padding: '1rem',
+                                            background: '#f0f9ff',
+                                            borderRadius: '12px',
+                                            fontFamily: '"Poppins", sans-serif',
+                                            fontSize: '1.1rem',
+                                            fontWeight: 'bold',
+                                            color: '#667eea',
+                                            textAlign: 'center'
+                                        }}>
+                                            {selectedWeeks.length} week{selectedWeeks.length > 1 ? 's' : ''} × $80 = ${totalCost}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Time Slots */}
+                                {selectedInstructor && selectedWeeks.length > 0 && (
+                                    <div style={{
+                                        background: 'white',
+                                        padding: '2rem',
+                                        borderRadius: '20px',
+                                        marginBottom: '2rem',
+                                        boxShadow: '0 10px 30px rgba(0,0,0,0.2)'
+                                    }}>
+                                        <h2 style={{
+                                            fontFamily: '"Poppins", sans-serif',
+                                            color: '#667eea',
+                                            marginBottom: '1.5rem',
+                                            fontSize: '2rem'
+                                        }}>
+                                            Choose Your Time Slot
+                                        </h2>
+                                        <div style={{
+                                            display: 'grid',
+                                            gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
+                                            gap: '1rem'
+                                        }}>
+                                            {TIME_SLOTS.map(slot => {
+                                                const isAvailable = selectedWeeks.every(week => 
+                                                    isSlotAvailable({ date: week }, slot, selectedInstructor)
+                                                );
+                                                
+                                                return (
+                                                    <button
+                                                        key={slot}
+                                                        onClick={() => isAvailable && setSelectedTimeSlot(slot)}
+                                                        disabled={!isAvailable}
+                                                        style={{
+                                                            padding: '1.5rem 1rem',
+                                                            borderRadius: '12px',
+                                                            border: `2px solid ${selectedTimeSlot === slot ? '#FFB347' : '#e0e0e0'}`,
+                                                            background: !isAvailable ? '#f5f5f5' : selectedTimeSlot === slot ? '#FFB34715' : 'white',
+                                                            cursor: isAvailable ? 'pointer' : 'not-allowed',
+                                                            fontFamily: '"Poppins", sans-serif',
+                                                            fontSize: '1.1rem',
+                                                            fontWeight: selectedTimeSlot === slot ? 'bold' : 'normal',
+                                                            opacity: !isAvailable ? 0.5 : 1
+                                                        }}
+                                                    >
+                                                        {slot}
+                                                        {!isAvailable && React.createElement('div', {style: {fontSize: '0.8rem', marginTop: '0.5rem'}}, 'Full')}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Continue Button */}
+                                {selectedInstructor && selectedWeeks.length > 0 && selectedTimeSlot && (
+                                    <div style={{ textAlign: 'center' }}>
+                                        <button
+                                            onClick={() => setView('booking')}
+                                            style={{
+                                                padding: '1.5rem 3rem',
+                                                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                                color: 'white',
+                                                border: 'none',
+                                                borderRadius: '50px',
+                                                fontSize: '1.3rem',
+                                                fontWeight: 'bold',
+                                                cursor: 'pointer',
+                                                fontFamily: '"Poppins", sans-serif',
+                                                boxShadow: '0 10px 30px rgba(102, 126, 234, 0.4)'
+                                            }}
+                                        >
+                                            Continue to Registration →
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {view === 'booking' && (
+                            <div style={{
+                                background: 'white',
+                                padding: '2.5rem',
+                                borderRadius: '20px',
+                                maxWidth: '700px',
+                                margin: '0 auto',
+                                boxShadow: '0 10px 30px rgba(0,0,0,0.2)'
+                            }}>
+                                <h2 style={{
+                                    fontFamily: '"Poppins", sans-serif',
+                                    color: '#667eea',
+                                    marginBottom: '2rem',
+                                    fontSize: '2.5rem',
+                                    textAlign: 'center'
+                                }}>
+                                    Complete Registration
+                                </h2>
+
+                                <div style={{
+                                    background: '#f8f9ff',
+                                    padding: '1.5rem',
+                                    borderRadius: '15px',
+                                    marginBottom: '2rem',
+                                    fontFamily: '"Poppins", sans-serif'
+                                }}>
+                                    <h3 style={{ margin: '0 0 1rem 0', color: '#667eea' }}>Your Selection:</h3>
+                                    <p style={{ margin: '0.5rem 0' }}><strong>Instructor:</strong> {selectedInstructor}</p>
+                                    <p style={{ margin: '0.5rem 0' }}><strong>Time:</strong> {selectedTimeSlot} (Mon-Thu)</p>
+                                    <p style={{ margin: '0.5rem 0' }}><strong>Weeks:</strong> {selectedWeeks.length}</p>
+                                    <p style={{ margin: '0.5rem 0', fontSize: '1.3rem', fontWeight: 'bold', color: '#667eea' }}>
+                                        <strong>Total:</strong> ${totalCost}
+                                    </p>
+                                </div>
+
+                                <input
+                                    type="text"
+                                    value={formData.name}
+                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                    placeholder="Parent/Guardian Name *"
+                                    style={{
+                                        width: '100%',
+                                        padding: '0.875rem',
+                                        borderRadius: '10px',
+                                        border: '2px solid #e0e0e0',
+                                        fontSize: '1rem',
+                                        fontFamily: '"Poppins", sans-serif',
+                                        marginBottom: '1rem'
+                                    }}
+                                />
+
+                                <input
+                                    type="text"
+                                    value={formData.childName}
+                                    onChange={(e) => setFormData({ ...formData, childName: e.target.value })}
+                                    placeholder="Child's Name"
+                                    style={{
+                                        width: '100%',
+                                        padding: '0.875rem',
+                                        borderRadius: '10px',
+                                        border: '2px solid #e0e0e0',
+                                        fontSize: '1rem',
+                                        fontFamily: '"Poppins", sans-serif',
+                                        marginBottom: '1rem'
+                                    }}
+                                />
+
+                                <input
+                                    type="email"
+                                    value={formData.email}
+                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                    placeholder="Email *"
+                                    style={{
+                                        width: '100%',
+                                        padding: '0.875rem',
+                                        borderRadius: '10px',
+                                        border: '2px solid #e0e0e0',
+                                        fontSize: '1rem',
+                                        fontFamily: '"Poppins", sans-serif',
+                                        marginBottom: '1rem'
+                                    }}
+                                />
+
+                                <input
+                                    type="tel"
+                                    value={formData.phone}
+                                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                    placeholder="Phone Number *"
+                                    style={{
+                                        width: '100%',
+                                        padding: '0.875rem',
+                                        borderRadius: '10px',
+                                        border: '2px solid #e0e0e0',
+                                        fontSize: '1rem',
+                                        fontFamily: '"Poppins", sans-serif',
+                                        marginBottom: '1.5rem'
+                                    }}
+                                />
+
+                                <div style={{
+                                    background: '#fff9e6',
+                                    padding: '1.5rem',
+                                    borderRadius: '15px',
+                                    marginBottom: '1.5rem'
+                                }}>
+                                    <h3 style={{ margin: '0 0 1rem 0', fontFamily: '"Poppins", sans-serif', color: '#FF6B9D' }}>
+                                        💳 Payment via Venmo
+                                    </h3>
+                                    <p style={{ fontFamily: '"Poppins", sans-serif', marginBottom: '1rem' }}>
+                                        Send ${totalCost} to: <strong>{CONFIG.VENMO_USERNAME}</strong>
+                                    </p>
+                                    <input
+                                        type="text"
+                                        value={formData.venmoUsername}
+                                        onChange={(e) => setFormData({ ...formData, venmoUsername: e.target.value })}
+                                        placeholder="Your Venmo Username"
+                                        style={{
+                                            width: '100%',
+                                            padding: '0.875rem',
+                                            borderRadius: '10px',
+                                            border: '2px solid #FFD700',
+                                            fontSize: '1rem',
+                                            fontFamily: '"Poppins", sans-serif',
+                                            marginBottom: '1rem'
+                                        }}
+                                    />
+                                    <a
+                                        href={`https://venmo.com/?txn=pay&audience=private&recipients=${CONFIG.VENMO_USERNAME.replace('@','')}&amount=${totalCost}&note=Swim%20Lessons`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        style={{
+                                            display: 'inline-block',
+                                            padding: '0.875rem 1.5rem',
+                                            background: '#008CFF',
+                                            color: 'white',
+                                            textDecoration: 'none',
+                                            borderRadius: '10px',
+                                            fontFamily: '"Poppins", sans-serif',
+                                            fontWeight: 'bold'
+                                        }}
+                                    >
+                                        Pay ${totalCost} via Venmo →
+                                    </a>
+                                </div>
+
+                                <div style={{
+                                    background: '#f0f9ff',
+                                    padding: '1.5rem',
+                                    borderRadius: '15px',
+                                    marginBottom: '2rem'
+                                }}>
+                                    <h3 style={{ margin: '0 0 1rem 0', fontFamily: '"Poppins", sans-serif', color: '#667eea' }}>
+                                        📋 Liability Waiver
+                                    </h3>
+                                    <div style={{
+                                        maxHeight: '150px',
+                                        overflowY: 'auto',
+                                        padding: '1rem',
+                                        background: 'white',
+                                        borderRadius: '8px',
+                                        marginBottom: '1rem',
+                                        fontSize: '0.9rem',
+                                        fontFamily: '"Poppins", sans-serif',
+                                        border: '1px solid #e0e0e0'
+                                    }}>
+                                        <p><strong>Swimming Lesson Liability Waiver</strong></p>
+                                        <p>I understand swimming lessons involve risks. I release instructors and facility from liability for injuries during lessons.</p>
+                                        <p><strong>Cancellation:</strong> Full refund if cancelled 2+ weeks before start. No refunds after.</p>
+                                    </div>
+                                    <input
+                                        type="text"
+                                        value={formData.signature}
+                                        onChange={(e) => setFormData({ ...formData, signature: e.target.value })}
+                                        placeholder="Type your full name to sign *"
+                                        style={{
+                                            width: '100%',
+                                            padding: '0.875rem',
+                                            borderRadius: '10px',
+                                            border: '2px solid #667eea',
+                                            fontSize: '1rem',
+                                            fontFamily: '"Poppins", sans-serif',
+                                            fontStyle: 'italic'
+                                        }}
+                                    />
+                                </div>
+
+                                <div style={{ display: 'flex', gap: '1rem' }}>
+                                    <button
+                                        onClick={() => setView('calendar')}
+                                        style={{
+                                            flex: 1,
+                                            padding: '1.25rem',
+                                            background: '#f5f5f5',
+                                            color: '#666',
+                                            border: 'none',
+                                            borderRadius: '12px',
+                                            fontSize: '1.1rem',
+                                            fontWeight: 'bold',
+                                            cursor: 'pointer',
+                                            fontFamily: '"Poppins", sans-serif'
+                                        }}
+                                    >
+                                        ← Back
+                                    </button>
+                                    <button
+                                        onClick={handleBooking}
+                                        style={{
+                                            flex: 2,
+                                            padding: '1.25rem',
+                                            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                            color: 'white',
+                                            border: 'none',
+                                            borderRadius: '12px',
+                                            fontSize: '1.1rem',
+                                            fontWeight: 'bold',
+                                            cursor: 'pointer',
+                                            fontFamily: '"Poppins", sans-serif',
+                                            boxShadow: '0 10px 30px rgba(102, 126, 234, 0.4)'
+                                        }}
+                                    >
+                                        Complete Registration 🎉
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {view === 'admin' && (
+                            <div style={{
+                                background: 'white',
+                                padding: '2.5rem',
+                                borderRadius: '20px',
+                                boxShadow: '0 10px 30px rgba(0,0,0,0.2)'
+                            }}>
+                                {!isAdminAuthenticated ? (
+                                    <div style={{ maxWidth: '400px', margin: '0 auto' }}>
+                                        <h2 style={{
+                                            fontFamily: '"Poppins", sans-serif',
+                                            color: '#667eea',
+                                            marginBottom: '1.5rem',
+                                            textAlign: 'center'
+                                        }}>
+                                            🔐 Admin Login
+                                        </h2>
+                                        <input
+                                            type="password"
+                                            value={adminPassword}
+                                            onChange={(e) => setAdminPassword(e.target.value)}
+                                            placeholder="Enter password"
+                                            style={{
+                                                width: '100%',
+                                                padding: '1rem',
+                                                borderRadius: '10px',
+                                                border: '2px solid #e0e0e0',
+                                                fontSize: '1rem',
+                                                fontFamily: '"Poppins", sans-serif',
+                                                marginBottom: '1rem'
+                                            }}
+                                        />
+                                        <button
+                                            onClick={() => {
+                                                if (adminPassword === CONFIG.ADMIN_PASSWORD) {
+                                                    setIsAdminAuthenticated(true);
+                                                } else {
+                                                    alert('Incorrect password');
+                                                }
+                                            }}
+                                            style={{
+                                                width: '100%',
+                                                padding: '1rem',
+                                                background: '#667eea',
+                                                color: 'white',
+                                                border: 'none',
+                                                borderRadius: '10px',
+                                                fontSize: '1.1rem',
+                                                fontWeight: 'bold',
+                                                cursor: 'pointer',
+                                                fontFamily: '"Poppins", sans-serif'
+                                            }}
+                                        >
+                                            Login
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div>
+                                        <div style={{ marginBottom: '2rem' }}>
+                                            <h2 style={{ fontFamily: '"Poppins", sans-serif', color: '#667eea', marginBottom: '1.5rem' }}>
+                                                Bookings Dashboard
+                                            </h2>
+                                            <div style={{
+                                                display: 'grid',
+                                                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                                                gap: '1.5rem',
+                                                marginBottom: '2rem'
+                                            }}>
+                                                <div style={{
+                                                    padding: '1.5rem',
+                                                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                                    borderRadius: '15px',
+                                                    color: 'white'
+                                                }}>
+                                                    <div style={{ fontSize: '2.5rem', fontWeight: 'bold' }}>{bookings.length}</div>
+                                                    <div>Total Bookings</div>
+                                                </div>
+                                                <div style={{
+                                                    padding: '1.5rem',
+                                                    background: 'linear-gradient(135deg, #4ECDC4 0%, #44A08D 100%)',
+                                                    borderRadius: '15px',
+                                                    color: 'white'
+                                                }}>
+                                                    <div style={{ fontSize: '2.5rem', fontWeight: 'bold' }}>
+                                                        ${bookings.reduce((sum, b) => sum + b.totalCost, 0)}
+                                                    </div>
+                                                    <div>Total Revenue</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {bookings.length > 0 && (
+                                            <div style={{ overflowX: 'auto' }}>
+                                                <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: '"Poppins", sans-serif' }}>
+                                                    <thead>
+                                                        <tr style={{ background: '#f8f9ff' }}>
+                                                            <th style={{ padding: '1rem', textAlign: 'left' }}>Name</th>
+                                                            <th style={{ padding: '1rem', textAlign: 'left' }}>Email</th>
+                                                            <th style={{ padding: '1rem', textAlign: 'left' }}>Instructor</th>
+                                                            <th style={{ padding: '1rem', textAlign: 'left' }}>Time</th>
+                                                            <th style={{ padding: '1rem', textAlign: 'left' }}>Weeks</th>
+                                                            <th style={{ padding: '1rem', textAlign: 'left' }}>Total</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {bookings.map(b => (
+                                                            <tr key={b.id} style={{ borderBottom: '1px solid #e0e0e0' }}>
+                                                                <td style={{ padding: '1rem' }}>{b.name}</td>
+                                                                <td style={{ padding: '1rem' }}>{b.email}</td>
+                                                                <td style={{ padding: '1rem' }}>{b.instructor}</td>
+                                                                <td style={{ padding: '1rem' }}>{b.timeSlot}</td>
+                                                                <td style={{ padding: '1rem' }}>{b.weeks.length}</td>
+                                                                <td style={{ padding: '1rem' }}>${b.totalCost}</td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {showConfirmation && (
+                            <div style={{
+                                position: 'fixed',
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                bottom: 0,
+                                background: 'rgba(0,0,0,0.5)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                zIndex: 1000
+                            }}>
+                                <div style={{
+                                    background: 'white',
+                                    padding: '3rem',
+                                    borderRadius: '20px',
+                                    maxWidth: '500px',
+                                    textAlign: 'center',
+                                    boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
+                                }}>
+                                    <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🎉</div>
+                                    <h2 style={{
+                                        fontFamily: '"Poppins", sans-serif',
+                                        color: '#667eea',
+                                        marginBottom: '1rem'
+                                    }}>
+                                        Registration Complete!
+                                    </h2>
+                                    <p style={{
+                                        fontFamily: '"Poppins", sans-serif',
+                                        color: '#666',
+                                        marginBottom: '1.5rem'
+                                    }}>
+                                        Confirmation email sent to {formData.email}
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<SwimLessonBooking />);
+    </script>
+</body>
+</html>
